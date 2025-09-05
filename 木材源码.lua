@@ -8,9 +8,8 @@ local Whitelist = {
     "zhangcongc",
     "91789478",
     "dchdhhfhxb",
-    "gouchaoxi2",     --添加白名单的账号
-    "Chinese1522",
-    "samcZSZ"
+    "gouchaoxi2",
+    "Chinese1522"
 }
 
 -- 检查当前用户是否在白名单中
