@@ -1,34 +1,29 @@
--- =====================================================================
--- == [Bypass] 反检测 - 必须最先执行
--- =====================================================================
 loadstring(game:HttpGet("https://pastefy.app/pDhoQmem/raw"))()
 
--- =====================================================================
--- == 加载 WindUI
--- =====================================================================
 local WindUI
 do
 	local ok, result = pcall(function()
 		return require("./src/Init")
 	end)
-	if ok then
+	if ok and result then
 		WindUI = result
 	else
 		ok, result = pcall(function()
 			return loadstring(game:HttpGet("https://raw.githubusercontent.com/bygyyds666/QJ/refs/heads/main/ui.lua"))()
 		end)
-		if ok then
+		if ok and result then
 			WindUI = result
 		else
-			warn("WindUI 加载失败")
+			warn("WindUI 加载失败: " .. tostring(result))
 			return
 		end
 	end
 end
+if not WindUI or not WindUI.CreateWindow then
+	warn("WindUI 未正确加载, 缺少 CreateWindow 方法")
+	return
+end
 
--- =====================================================================
--- == 核心服务
--- =====================================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local RepStorage = game:GetService("ReplicatedStorage")
@@ -40,16 +35,10 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- =====================================================================
--- == Remotes
--- =====================================================================
 local GN_S = RepStorage.Events.GNX_S
 local ZF_H = RepStorage.Events.ZFKLF__H
 local GN_R = RepStorage.Events.GNX_R
 
--- =====================================================================
--- == DoTweak 查找
--- =====================================================================
 local DoTweak_fn
 task.defer(function()
 	for _, v in getgc(true) do
@@ -63,9 +52,6 @@ task.defer(function()
 	end
 end)
 
--- =====================================================================
--- == 状态变量
--- =====================================================================
 local RB_State, RF_State, AutoReload, DownCheck = false, false, false, false
 local Debug_Rays, TargetMode, HitSoundSelection = false, "Near", "None"
 local Origin_Radius, Hit_Radius = 18.50, 23.50
@@ -76,7 +62,6 @@ local WB = { LastScan = 0, Cached = false, Toggle = false, Threshold = 0.5, Roun
 local NoFallEnabled = false
 local NR = { Enabled = false, Conns = {}, OrigVals = {}, Cache = {}, RecoilVal = 0 }
 
--- World Visuals
 local WV = {
 	LightingModeEnabled = false,
 	LightingMode = "ShadowMap",
@@ -138,7 +123,6 @@ local WV_Emitter = Instance.new("ParticleEmitter", WV_WeatherPart)
 WV_Emitter.EmissionDirection = Enum.NormalId.Bottom
 WV_Emitter.Orientation = Enum.ParticleOrientation.FacingCameraWorldUp
 
--- Silent Aim
 local SA = {
 	Enabled = false,
 	HitChance = 100,
@@ -176,18 +160,15 @@ local InfStaminaEnabled, InfStaminaConnection = false, nil
 local TR = { Enabled = false, Size = 1, Color = Color3.fromRGB(255, 255, 255), Alpha = 0 }
 local HitLogEnabled = false
 
--- Antis
 local HeadMode, HandsModSelection = nil, nil
 local OriginalNeckC0, OriginalNeckC1 = nil, nil
 local HeadYaw, HeadRotSpeed, HeadYawTime = 0, 30, 0
 local HeadCustomYaw = 0
 
--- Invisible
 local Invis_Enabled, Invis_Track, Invis_SavedCF = false, nil, nil
 local Invis_Anim = Instance.new("Animation")
 Invis_Anim.AnimationId = "rbxassetid://282574440"
 
--- Velocity Desync
 local DS = {
 	Enabled = false,
 	Visualize = true,
@@ -203,7 +184,6 @@ local DS = {
 	Model = nil,
 }
 
--- 乱飞 (Spin Desync)
 local LF = {
 	Enabled = false,
 	SpinSpeed = 100,
@@ -217,11 +197,9 @@ local LF = {
 LF.Anim1.AnimationId = "rbxassetid://215384594"
 LF.Anim2.AnimationId = "rbxassetid://68339848"
 
--- Safe Chams & Auto Farm
 local SafeChamsEnabled, SafeChamsLoop = false, nil
 local SC = { APM_Enabled = false, APM_Loop = nil, AUS_Enabled = false, AUS_Loop = nil }
 
--- Desync visual model
 DS.Model = Instance.new("Model")
 DS.Model.Name = "FakePosVisual"
 do
@@ -277,13 +255,11 @@ local HitSounds = {
 local SpeedState, JumpState, SpeedValue, JumpValue = false, false, 33.5, 73
 local CurrentHum = nil
 
--- Misc
 local MC = { AntiShift = false, ShiftDelay = 0.05, SmoothCam = false, LerpSpeed = 6, SmoothPos = nil }
 local AMB = { Enabled = false, Color = Color3.fromRGB(190, 220, 255), Density = 0.45, Brightness = 0.15, Gui = nil }
 local CAM_FOV
 local CAM_FOV_Conn
 
--- Fly
 local FLY = {
 	Enabled = false,
 	Active = false,
@@ -311,7 +287,6 @@ local function FlyRefreshBtn()
 	FLY.Btn.BackgroundColor3 = if FLY.Active then Color3.fromRGB(30, 165, 60) else Color3.fromRGB(185, 45, 45)
 end
 
--- Camlock
 local CL = {
 	Enabled = false,
 	DownCheck = false,
@@ -330,7 +305,6 @@ local CL = {
 	CachedVel = 1100,
 }
 
--- Melee Aura
 local MA = {
 	Enabled = false,
 	DownCheck = false,
@@ -345,7 +319,6 @@ local MA = {
 	Remote2 = RepStorage:WaitForChild("Events"):WaitForChild("XMHH2.2"),
 }
 
--- Antis Constants
 local AC = {
 	NeckC0 = CFrame.new(0, 0.4, 0.3),
 	NeckC1 = CFrame.new(0, -0.1, 0.4) * CFrame.Angles(math.rad(90), math.rad(-180), 0),
@@ -359,9 +332,6 @@ local AC = {
 	HandsUp2 = Vector3.new(-4264.8974609375, 0.9520299434661865, -556.17333984375),
 }
 
--- =====================================================================
--- == HitLog
--- =====================================================================
 local HitLog = { ActiveLogs = {} }
 HitLog.THEME = {
 	RowHeight = 13,
@@ -378,7 +348,6 @@ HitLog.THEME = {
 	Position = UDim2.new(0, 20, 0, 70),
 }
 
--- ESP
 local BoxESP = { Boxes = {}, Conn = {} }
 local espSets = {
 	enabled = false,
@@ -404,10 +373,6 @@ local reloadConnections = {}
 local PL_TargetSearch, PL_WhiteSearch = nil, nil
 local lastTickHadGun = false
 local ChangeMouseLockEvent = RepStorage:WaitForChild("Events2"):WaitForChild("ChangeMouseLock")
-
--- =====================================================================
--- == Functions
--- =====================================================================
 
 local function GetLocalRealPosition(): Vector3
 	local char = LocalPlayer.Character
@@ -507,10 +472,10 @@ local function AddLogEntry(text: string)
 end
 
 local function ProcessHitLog(tName: string, toolName: string, dmg: number, dist: number|string, cached: boolean)
-	local s = `rgb({200},{200},{200})`
-	local g = `rgb({0},{255},{0})`
-	local ct = if cached then ` <font color="{g}">Via Cache</font>` else ""
-	AddLogEntry(`<font color="{s}">Hit </font><font color="{g}">{tName} </font><font color="{s}">use </font><font color="{g}">{toolName} </font><font color="{s}">in the Head for </font><font color="{g}">{tostring(dmg)} </font><font color="{s}">damage </font><font color="{g}">{dist}m</font>{ct}`)
+	local s = "rgb(200,200,200)"
+	local g = "rgb(0,255,0)"
+	local ct = if cached then " Via Cache" else ""
+	AddLogEntry("Hit "..tName.." use "..toolName.." in the Head for "..tostring(dmg).." damage "..tostring(dist).."m"..ct)
 end
 
 InitHitLog()
@@ -586,9 +551,6 @@ if LocalPlayer.Character then
 	end)
 end
 
--- =====================================================================
--- == HOOKS - 必须在UI之前执行
--- =====================================================================
 local originalFireServer
 originalFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
 	if NoFallEnabled and self.Name == "__RZDONL" then
@@ -669,9 +631,6 @@ oldNewIndex = hookmetamethod(game, "__newindex", function(t, k, v)
 	return oldNewIndex(t, k, v)
 end)
 
--- =====================================================================
--- == NR Functions
--- =====================================================================
 local function NR_CacheWeapons()
 	NR.Cache = {}
 	for _, v in getgc(true) do
@@ -770,9 +729,6 @@ local function NR_Disable()
 	NR.Conns = {}
 end
 
--- =====================================================================
--- == Fly Functions
--- =====================================================================
 FLY.AnimObj = Instance.new("Animation")
 FLY.AnimObj.AnimationId = FLY.AnimId
 
@@ -880,7 +836,7 @@ local function FlyCreateUI()
 	speedLabel.Size = UDim2.new(1, -16, 0, 16)
 	speedLabel.Position = UDim2.new(0, 8, 0, 26)
 	speedLabel.BackgroundTransparency = 1
-	speedLabel.Text = `spd  {FLY.Speed}`
+	speedLabel.Text = "spd "..FLY.Speed
 	speedLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
 	speedLabel.TextSize = 10
 	speedLabel.Font = Enum.Font.Gotham
@@ -913,9 +869,6 @@ local function FlyDestroyUI()
 	FLY.SpeedLabel = nil
 end
 
--- =====================================================================
--- == Other Functions
--- =====================================================================
 local function GetCustomTag(char: Model, tagName: string, offset: Vector3): BillboardGui?
 	local tag = char:FindFirstChild(tagName)
 	if not tag then
@@ -1464,9 +1417,6 @@ local function GetAllPlayerNames(): {string}
 	return n
 end
 
--- =====================================================================
--- == Scan Vectors
--- =====================================================================
 local ScanVectors = {
 	Vector3.new(1, 0, 0),
 	Vector3.new(0, 0, 1),
@@ -1523,9 +1473,6 @@ local function GetOffsets_Algo2(center: Vector3, poleDir: Vector3, radius: numbe
 	return offsets
 end
 
--- =====================================================================
--- == Ragebot
--- =====================================================================
 local function DoRagebot()
 	if not RB_State then Valid_Pair = nil; Locked_Path = nil; return end
 	local target = GetTarget()
@@ -1591,9 +1538,6 @@ local function DoRagebot()
 	end
 end
 
--- =====================================================================
--- == Silent Aim Event
--- =====================================================================
 do
 	local ok1, ok2 = pcall(function()
 		SA.VisualizeEvent = RepStorage:WaitForChild("Events2", 5):WaitForChild("Visualize", 5)
@@ -1650,11 +1594,8 @@ do
 	end
 end
 
--- =====================================================================
--- == 创建 UI
--- =====================================================================
 local Window = WindUI:CreateWindow({
-	Title = `<font color='#FFFFFF'>X</font><font color='#CCCCCC'>I</font><font color='#999999'>A</font><font color='#666666'>O</font><font color='#444444'>X</font><font color='#333333'>I</font> <font color='#666666'>H</font><font color='#444444'>U</font><font color='#222222'>B</font><font color='#FFAEC4'></font>`,
+	Title = "XIAOXI HUB",
 	Folder = "ftgshub",
 	NewElements = true,
 	HideSearchBar = false,
@@ -1663,9 +1604,8 @@ local Window = WindUI:CreateWindow({
 	UserEnabled = true,
 	SideBarWidth = 135,
 	HasOutline = true,
-	Background = "https://raw.githubusercontent.com/xiaoxi9008/Mysterious-coral./refs/heads/main/1777784268833.jpeg",
 	OpenButton = {
-		Title = `<font color='#FFFFFF'>X</font><font color='#CCCCCC'>I</font><font color='#999999'>A</font><font color='#666666'>O</font><font color='#444444'>X</font><font color='#333333'>I</font> <font color='#666666'>H</font><font color='#444444'>U</font><font color='#222222'>B</font><font color='#FFAEC4'></font>`,
+		Title = "XIAOXI HUB",
 		CornerRadius = UDim.new(1, 0),
 		StrokeThickness = 1.5,
 		Enabled = true,
@@ -1673,34 +1613,22 @@ local Window = WindUI:CreateWindow({
 		OnlyMobile = false,
 		Color = ColorSequence.new(Color3.fromHex("FFFFFF"), Color3.fromHex("FFFFFF")),
 	},
-	Topbar = { Height = 44, ButtonsType = "Mac" },
+	Topbar = { Height = 44, ButtonsType = "Close" },
 })
 
 Window:Tag({ Title = "付费版", Radius = 4, Color = Color3.fromHex("#ffffff") })
 Window:Tag({ Title = "犯罪", Radius = 4, Color = Color3.fromHex("#ffffff") })
 
-local White = Color3.fromHex("#FFFFFF")
-local LightGray = Color3.fromHex("#CCCCCC")
-local Gray = Color3.fromHex("#999999")
-local DarkGray = Color3.fromHex("#666666")
-local AlmostBlack = Color3.fromHex("#333333")
+local AboutTab = Window:Tab({ Title = "公告", Desc = "脚本信息", Icon = "solar:info-square-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local CombatTab = Window:Tab({ Title = "战斗", Desc = "战斗相关", Icon = "rbxassetid://106487037258687", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local VisualsTab = Window:Tab({ Title = "视觉", Desc = "视觉相关", Icon = "solar:eye-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local PlayerTab = Window:Tab({ Title = "玩家", Desc = "玩家相关", Icon = "solar:user-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local AntisTab = Window:Tab({ Title = "反自瞄", Desc = "反自瞄相关", Icon = "solar:shield-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local MiscTab = Window:Tab({ Title = "杂项", Desc = "杂项功能", Icon = "solar:settings-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
+local PlayerListTab = Window:Tab({ Title = "玩家列表", Desc = "玩家列表", Icon = "solar:users-group-rounded-bold", IconColor = Color3.fromHex("#999999"), IconShape = "Square", Border = true })
 
--- =====================================================================
--- == Tabs
--- =====================================================================
-local AboutTab = Window:Tab({ Title = "公告", Desc = "脚本信息", Icon = "solar:info-square-bold", IconColor = Gray, IconShape = "Square", Border = true })
-local CombatTab = Window:Tab({ Title = "战斗", Desc = "战斗相关", Icon = "rbxassetid://106487037258687", IconColor = Gray, IconShape = "Square", Border = true })
-local VisualsTab = Window:Tab({ Title = "视觉", Desc = "视觉相关", Icon = "solar:eye-bold", IconColor = Gray, IconShape = "Square", Border = true })
-local PlayerTab = Window:Tab({ Title = "玩家", Desc = "玩家相关", Icon = "solar:user-bold", IconColor = Gray, IconShape = "Square", Border = true })
-local AntisTab = Window:Tab({ Title = "反自瞄", Desc = "反自瞄相关", Icon = "solar:shield-bold", IconColor = Gray, IconShape = "Square", Border = true })
-local MiscTab = Window:Tab({ Title = "杂项", Desc = "杂项功能", Icon = "solar:settings-bold", IconColor = Gray, IconShape = "Square", Border = true })
-local PlayerListTab = Window:Tab({ Title = "玩家列表", Desc = "玩家列表", Icon = "solar:users-group-rounded-bold", IconColor = Gray, IconShape = "Square", Border = true })
-
--- =====================================================================
--- == 公告页
--- =====================================================================
 AboutTab:Paragraph({
-	Title = `<font color='#FFFFFF'>X</font><font color='#CCCCCC'>I</font><font color='#999999'>A</font><font color='#666666'>O</font><font color='#444444'>X</font><font color='#222222'>I</font> 脚本`,
+	Title = "XIAOXI 脚本",
 	Desc = "作者：小西｜犯罪脚本",
 	ImageSize = 50,
 	Thumbnail = "https://raw.githubusercontent.com/xiaoxi9008/Server./refs/heads/main/7fdb4ab15ea4447bc9566c7caf856f82fc31ae85362243f5f0dd837a41c9ea86.png",
@@ -1710,15 +1638,12 @@ AboutTab:Divider()
 AboutTab:Button({
 	Title = "显示欢迎通知",
 	Icon = "bell",
-	Color = Gray,
+	Color = Color3.fromHex("#999999"),
 	Callback = function()
 		WindUI:Notify({ Title = "欢迎!", Content = "感谢使用XIAOXI付费版", Icon = "heart", Duration = 3 })
 	end,
 })
 
--- =====================================================================
--- == 战斗页 - Silent Aim
--- =====================================================================
 local SASection = CombatTab:Section({ Title = "Silent Aim", Desc = "静默自瞄设置", Side = "Left" })
 SASection:Toggle({ Title = "启用", Value = false, Callback = function(v: boolean) SA.Enabled = v end })
 SASection:Dropdown({
@@ -1749,9 +1674,6 @@ FOVSection:Slider({ Title = "边数", Value = { Min = 3, Max = 32, Default = 16 
 FOVSection:Toggle({ Title = "旋转", Value = false, Callback = function(v: boolean) SA.FOV_SpinEnabled = v end })
 FOVSection:Slider({ Title = "旋转速度", Value = { Min = 0, Max = 500, Default = 50 }, Callback = function(v: number) SA.FOV_SpinSpeed = v end })
 
--- =====================================================================
--- == 战斗页 - Camlock
--- =====================================================================
 local CamSection = CombatTab:Section({ Title = "Camlock", Desc = "瞄准锁定设置", Side = "Left" })
 CamSection:Toggle({ Title = "启用", Value = false, Callback = function(v: boolean) CL.Enabled = v end })
 CamSection:Toggle({ Title = "仅目标", Value = false, Callback = function(v: boolean) CL.TargetOnly = v end })
@@ -1788,9 +1710,6 @@ LGOtherSection:Slider({
 	end,
 })
 
--- =====================================================================
--- == 战斗页 - Melee Aura
--- =====================================================================
 local MeleeSection = CombatTab:Section({ Title = "近战光环", Desc = "近战攻击设置", Side = "Left" })
 MeleeSection:Toggle({
 	Title = "启用",
@@ -1811,9 +1730,6 @@ MeleeSection:Dropdown({
 	Callback = function(v: string) MA.TargetPart = v end,
 })
 
--- =====================================================================
--- == 战斗页 - Ragebot
--- =====================================================================
 local RageSection = CombatTab:Section({ Title = "Ragebot", Desc = "暴力自瞄设置", Side = "Left" })
 RageSection:Toggle({ Title = "启用", Value = false, Callback = function(v: boolean) RB_State = v end })
 RageSection:Toggle({ Title = "快速射击", Value = false, Callback = function(v: boolean) RF_State = v end })
@@ -1847,9 +1763,6 @@ TargetSection:Dropdown({
 	Callback = function(v: string) HitSoundSelection = v end,
 })
 
--- =====================================================================
--- == 视觉页 - 世界
--- =====================================================================
 local LightingSection = VisualsTab:Section({ Title = "光照", Desc = "光照设置", Side = "Left" })
 LightingSection:Toggle({ Title = "光照模式", Value = false, Callback = function(v: boolean) WV.LightingModeEnabled = v end })
 LightingSection:Dropdown({
@@ -1976,9 +1889,6 @@ AudioSection:Slider({
 	end,
 })
 
--- =====================================================================
--- == 视觉页 - 皮肤
--- =====================================================================
 local SkinSection = VisualsTab:Section({ Title = "皮肤", Desc = "皮肤设置", Side = "Left" })
 SkinSection:Toggle({
 	Title = "力场身体",
@@ -2034,17 +1944,11 @@ SkinSection:Toggle({
 	end,
 })
 
--- =====================================================================
--- == 视觉页 - 子弹追踪
--- =====================================================================
 local TracerSection = VisualsTab:Section({ Title = "子弹追踪", Desc = "子弹追踪设置", Side = "Left" })
 TracerSection:Toggle({ Title = "启用", Value = false, Callback = function(v: boolean) TR.Enabled = v end })
 TracerSection:Colorpicker({ Title = "追踪颜色", Value = TR.Color, Callback = function(c: Color3, a: number) TR.Color = c; TR.Alpha = a end })
 TracerSection:Slider({ Title = "大小", Value = { Min = 0.1, Max = 10, Default = 1 }, Callback = function(v: number) TR.Size = v end })
 
--- =====================================================================
--- == 视觉页 - Hit Log
--- =====================================================================
 local HitLogSection = VisualsTab:Section({ Title = "命中日志", Desc = "命中日志设置", Side = "Left" })
 HitLogSection:Toggle({
 	Title = "启用",
@@ -2055,9 +1959,6 @@ HitLogSection:Toggle({
 	end,
 })
 
--- =====================================================================
--- == 视觉页 - 氛围
--- =====================================================================
 local AmbSection = VisualsTab:Section({ Title = "氛围", Desc = "氛围设置", Side = "Left" })
 AmbSection:Toggle({
 	Title = "氛围",
@@ -2074,9 +1975,6 @@ AmbSection:Colorpicker({ Title = "雾色", Value = Color3.fromRGB(190, 220, 255)
 AmbSection:Slider({ Title = "雾密度", Value = { Min = 0, Max = 1, Default = 0.45 }, Callback = function(v: number) AMB.Density = v end })
 AmbSection:Slider({ Title = "亮度", Value = { Min = -1, Max = 1, Default = 0.15 }, Callback = function(v: number) AMB.Brightness = v end })
 
--- =====================================================================
--- == 视觉页 - ESP
--- =====================================================================
 local ESPSection = VisualsTab:Section({ Title = "ESP", Desc = "ESP 设置", Side = "Right" })
 ESPSection:Toggle({
 	Title = "名称标签",
@@ -2191,9 +2089,6 @@ ESPSection:Colorpicker({
 ESPSection:Slider({ Title = "轮廓大小", Value = { Min = 0.01, Max = 1, Default = 0.1 }, Callback = function(v: number) espSets.outSize = v end })
 ESPSection:Slider({ Title = "内联大小", Value = { Min = 0.01, Max = 0.5, Default = 0.05 }, Callback = function(v: number) espSets.inSize = v end })
 
--- =====================================================================
--- == 玩家页
--- =====================================================================
 local MovementSection = PlayerTab:Section({ Title = "移动", Desc = "移动设置", Side = "Left" })
 MovementSection:Toggle({ Title = "步行速度", Value = false, Callback = function(v: boolean) SpeedState = v end })
 MovementSection:Slider({ Title = "速度值", Value = { Min = 1, Max = 100, Default = 33.5 }, Callback = function(v: number) SpeedValue = v end })
@@ -2255,9 +2150,6 @@ MovementSection:Toggle({
 	end,
 })
 
--- =====================================================================
--- == 反自瞄页
--- =====================================================================
 local AntiHitSection = AntisTab:Section({ Title = "反自瞄", Desc = "反自瞄设置", Side = "Left" })
 AntiHitSection:Dropdown({
 	Title = "头部模式",
@@ -2317,9 +2209,6 @@ AntiHitSection:Toggle({
 	end,
 })
 
--- =====================================================================
--- == 反自瞄页 - 速度不同步
--- =====================================================================
 local DesyncSection = AntisTab:Section({ Title = "速度不同步", Desc = "速度不同步设置", Side = "Right" })
 DesyncSection:Toggle({ Title = "启用", Value = false, Callback = function(v: boolean) DS.Enabled = v end })
 DesyncSection:Toggle({ Title = "可视化", Value = true, Callback = function(v: boolean) DS.Visualize = v end })
@@ -2328,9 +2217,6 @@ DesyncSection:Slider({ Title = "X 偏移", Value = { Min = 1, Max = 20, Default 
 DesyncSection:Slider({ Title = "Y 偏移", Value = { Min = 1, Max = 20, Default = 3 }, Callback = function(v: number) DS.Y = v end })
 DesyncSection:Slider({ Title = "Z 偏移", Value = { Min = 1, Max = 20, Default = 8.5 }, Callback = function(v: number) DS.Z = v end })
 
--- =====================================================================
--- == 杂项页
--- =====================================================================
 local ShiftSection = MiscTab:Section({ Title = "Shiftlock", Desc = "Shiftlock 设置", Side = "Left" })
 ShiftSection:Toggle({ Title = "反自动 Shiftlock", Value = false, Callback = function(v: boolean) MC.AntiShift = v end })
 ShiftSection:Slider({ Title = "延迟", Value = { Min = 0.01, Max = 0.50, Default = 0.05 }, Callback = function(v: number) MC.ShiftDelay = v end })
@@ -2364,9 +2250,6 @@ CameraMiscSection:Toggle({
 })
 CameraMiscSection:Slider({ Title = "速度", Value = { Min = 1, Max = 10, Default = 6 }, Callback = function(v: number) MC.LerpSpeed = v end })
 
--- =====================================================================
--- == 玩家列表页
--- =====================================================================
 local TargetListSection = PlayerListTab:Section({ Title = "目标列表", Desc = "目标列表设置", Side = "Left" })
 TargetListSection:Dropdown({
 	Title = "目标",
@@ -2396,9 +2279,6 @@ WhitelistSection:Dropdown({
 })
 WhitelistSection:Button({ Title = "清除白名单", Callback = function() WhiteList = {} end })
 
--- =====================================================================
--- == 玩家加入/离开处理
--- =====================================================================
 Players.PlayerAdded:Connect(function(p: Player)
 	task.wait(1)
 	local allNames = GetAllPlayerNames()
@@ -2440,9 +2320,6 @@ Players.PlayerRemoving:Connect(function(p: Player)
 	end
 end)
 
--- =====================================================================
--- == RenderStep Binds
--- =====================================================================
 RunService:BindToRenderStep("InvisFix", 199, function()
 	if not Invis_Enabled or DS.Enabled or LF.Enabled then Invis_SavedCF = nil; return end
 	local char = LocalPlayer.Character
@@ -2478,9 +2355,6 @@ RunService:BindToRenderStep("SmoothMovementCamera", Enum.RenderPriority.Camera.V
 	Camera.CFrame = CFrame.new(MC.SmoothPos, MC.SmoothPos + cf.LookVector)
 end)
 
--- =====================================================================
--- == Main Heartbeat Loops
--- =====================================================================
 local function DoSkinUpdate()
 	local now = tick()
 	if now - FF_S.LastSkin < 1 then return end
@@ -2671,9 +2545,6 @@ RunService.Heartbeat:Connect(function()
 	DoRagebot()
 end)
 
--- =====================================================================
--- == RenderStepped Binds (Anti-Hit, Camlock)
--- =====================================================================
 RunService:BindToRenderStep("CAM_FOV_Enforce", Enum.RenderPriority.Camera.Value + 2, function()
 	if CAM_FOV then Camera.FieldOfView = CAM_FOV end
 	if AMB.Enabled then
@@ -2747,9 +2618,6 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 end)
 
--- =====================================================================
--- == CamLock + Speed/Jump RenderStepped
--- =====================================================================
 RunService.RenderStepped:Connect(function(dt: number)
 	local char = LocalPlayer.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -2821,9 +2689,6 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 end)
 
--- =====================================================================
--- == Ragebot Fire Heartbeat
--- =====================================================================
 RunService.Heartbeat:Connect(function()
 	if not RB_State or not Valid_Pair then return end
 	local char = LocalPlayer.Character
@@ -2851,7 +2716,7 @@ RunService.Heartbeat:Connect(function()
 	if not (ammo and ammo.Value > 0) then return end
 	local part = Valid_Pair.Target.Character:FindFirstChild("Head") or Valid_Pair.Target.Character:FindFirstChild("HumanoidRootPart")
 	if not part then return end
-	local key = `K{math.random(1000, 9999)}`
+	local key = "K"..math.random(1000, 9999)
 	local dir = (Valid_Pair.Hit - Valid_Pair.Origin).Unit
 	GN_S:FireServer(tick(), key, tool, "FDS9I83", Valid_Pair.Origin, { dir }, false)
 	if TR.Enabled then task.spawn(CreateTracer, Valid_Pair.Origin, dir) end
@@ -2873,9 +2738,6 @@ RunService.Heartbeat:Connect(function()
 	Last_Shot = tick()
 end)
 
--- =====================================================================
--- == Anti Shiftlock Heartbeat
--- =====================================================================
 RunService.Heartbeat:Connect(function()
 	if not MC.AntiShift then return end
 	local char = LocalPlayer.Character
@@ -2890,9 +2752,6 @@ RunService.Heartbeat:Connect(function()
 	lastTickHadGun = hasGun
 end)
 
--- =====================================================================
--- == ESP / Nametag Heartbeat
--- =====================================================================
 RunService.Heartbeat:Connect(function()
 	if not (NametagEnabled or DistanceEnabled or HealthEnabled) then return end
 	local myChar = LocalPlayer.Character
@@ -2957,16 +2816,13 @@ RunService.Heartbeat:Connect(function()
 					local distL = tag:FindFirstChild("DL")
 					local tr = player.Character:FindFirstChild("HumanoidRootPart")
 					if nameL and nameL.Visible then nameL.Text = player.Name end
-					if distL and distL.Visible and tr then distL.Text = `{math.floor((myPos - tr.Position).Magnitude)}M` end
+					if distL and distL.Visible and tr then distL.Text = math.floor((myPos - tr.Position).Magnitude).."M" end
 				end
 			end
 		end
 	end
 end)
 
--- =====================================================================
--- == Fly Heartbeat
--- =====================================================================
 RunService.Heartbeat:Connect(function()
 	if FLY.Active then
 		local char2 = LocalPlayer.Character
@@ -3019,12 +2875,9 @@ RunService.Heartbeat:Connect(function()
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 	hrp.AssemblyLinearVelocity = FlyGetInputDir() * FLY.Speed
-	if FLY.SpeedLabel then FLY.SpeedLabel.Text = `spd  {FLY.Speed}` end
+	if FLY.SpeedLabel then FLY.SpeedLabel.Text = "spd "..FLY.Speed end
 end)
 
--- =====================================================================
--- == World Visuals Enforce Loop
--- =====================================================================
 RunService.RenderStepped:Connect(function()
 	if WV.WorldTimeEnabled then WV_Lit.ClockTime = WV.WorldTime end
 	if WV.AmbientEnabled then WV_Lit.Ambient = WV.AmbientColor; WV_Lit.OutdoorAmbient = WV.OutdoorAmbientColor end
@@ -3047,12 +2900,12 @@ RunService.RenderStepped:Connect(function()
 		if not currentSky then currentSky = WV_Sky; currentSky.Parent = WV_Lit end
 		local ids = WV_Skyboxes[WV.SkyboxType]
 		if ids then
-			currentSky.SkyboxBk = `rbxassetid://{ids.Bk}`
-			currentSky.SkyboxDn = `rbxassetid://{ids.Dn}`
-			currentSky.SkyboxFt = `rbxassetid://{ids.Ft}`
-			currentSky.SkyboxLf = `rbxassetid://{ids.Lf}`
-			currentSky.SkyboxRt = `rbxassetid://{ids.Rt}`
-			currentSky.SkyboxUp = `rbxassetid://{ids.Up}`
+			currentSky.SkyboxBk = "rbxassetid://"..ids.Bk
+			currentSky.SkyboxDn = "rbxassetid://"..ids.Dn
+			currentSky.SkyboxFt = "rbxassetid://"..ids.Ft
+			currentSky.SkyboxLf = "rbxassetid://"..ids.Lf
+			currentSky.SkyboxRt = "rbxassetid://"..ids.Rt
+			currentSky.SkyboxUp = "rbxassetid://"..ids.Up
 		end
 	else
 		if WV_Sky.Parent == WV_Lit then WV_Sky.Parent = nil end
@@ -3062,9 +2915,6 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- =====================================================================
--- == SA Random Part Cycler
--- =====================================================================
 RunService.Heartbeat:Connect(function(dt: number)
 	if not SA.Enabled or not SA.IsRandom then return end
 	SA.RandomTimer += dt
@@ -3075,9 +2925,6 @@ RunService.Heartbeat:Connect(function(dt: number)
 	end
 end)
 
--- =====================================================================
--- == SA FOV Circle Drawing
--- =====================================================================
 do
 	local FOV_Lines = {}
 	local FOV_Rotation = 0
@@ -3126,9 +2973,6 @@ do
 	end)
 end
 
--- =====================================================================
--- == 黑白渐变边框效果
--- =====================================================================
 local function startGrayscaleBorder()
 	local mainFrame = Window.UIElements and Window.UIElements.Main
 	if not mainFrame then task.wait(0.2); mainFrame = Window.UIElements and Window.UIElements.Main; if not mainFrame then warn("无法找到窗口主框架"); return end end
@@ -3167,7 +3011,10 @@ end
 
 startGrayscaleBorder()
 
-local function MonitorChar(c: Model?) if c then CurrentHum = c:WaitForChild("Humanoid", 10) end end
+local Library = {}
+Library.Window = Window
+
+local function MonitorChar(c) if c then CurrentHum = c:WaitForChild("Humanoid", 10) end end
 MonitorChar(LocalPlayer.Character)
 LocalPlayer.CharacterAdded:Connect(MonitorChar)
 
