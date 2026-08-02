@@ -1333,6 +1333,82 @@ end })
 FT:Button({ Title = "传送+全自动破解", Icon = "truck", Callback = function()
     C.doATMFull = true
 end })
+FT:Toggle({
+    Title = "自动接送乘客（出租车刷钱）",
+    Value = false,
+    Callback = function(state)
+        if state then
+            C.autoTeleportVehicle = true
+            task.spawn(function()
+                while C.autoTeleportVehicle do
+                    local clientContent = workspace:FindFirstChild("Gameplay")
+                        and workspace.Gameplay:FindFirstChild("Entities")
+                        and workspace.Gameplay.Entities:FindFirstChild("ClientContent")
+
+                    if clientContent then
+                        for _, obj in ipairs(clientContent:GetDescendants()) do
+                            if obj.Name == "Visual" and obj.Parent and obj.Parent.Name == "VehicleInteraction" then
+                                local pos
+                                if obj:IsA("BasePart") then
+                                    pos = obj.Position
+                                elseif obj:IsA("Model") then
+                                    local pp = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                                    if pp then pos = pp.Position end
+                                end
+
+                                if pos then
+                                    local char = game.Players.LocalPlayer.Character
+                                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                                    if root then
+                                        -- 在原始位置上往下移动一格（Y轴 -1）
+                                        root.CFrame = CFrame.new(pos - Vector3.new(0, 1, 0))
+                                        if tp then
+                                            tp(pos - Vector3.new(0, 1, 0))
+                                        end
+                                    end
+                                end
+                                break
+                            end
+                        end
+                    end
+                    task.wait(0.02)
+                end
+            end)
+        else
+            C.autoTeleportVehicle = false
+        end
+    end
+})
+FT:Toggle({ Title = "自动接单（出租车刷钱）", Value = false, Callback = function(state)
+    if state then
+        C.autoTaxiAccept = true
+        task.spawn(function()
+            local function accept()
+                local screenSize = workspace.CurrentCamera.ViewportSize
+                local x = screenSize.X * 0.85
+                local y = screenSize.Y * 0.35
+                vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
+                vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
+                task.wait(0.3)
+                vim:SendMouseButtonEvent(x, y + 100, 0, true, game, 0)
+                vim:SendMouseButtonEvent(x, y + 100, 0, false, game, 0)
+                task.wait(0.3)
+                vim:SendMouseButtonEvent(x, y + 160, 0, true, game, 0)
+                vim:SendMouseButtonEvent(x, y + 160, 0, false, game, 0)
+                task.wait(0.3)
+                vim:SendMouseButtonEvent(x, y + 240, 0, true, game, 0)
+                vim:SendMouseButtonEvent(x, y + 240, 0, false, game, 0)
+                task.wait(0.3)
+            end
+            while C.autoTaxiAccept do
+                accept()
+                task.wait(2)
+            end
+        end)
+    else
+        C.autoTaxiAccept = false
+    end
+end })
 
 local AUT = Window:Tab({ Title = "自动购买", Icon = "shopping-cart" })
 AUT:Dropdown({ Title = "武器商店", Values = weaponNames, Value = selectedWeapon, Callback = function(name) selectedWeapon = name end })
