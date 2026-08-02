@@ -28,7 +28,7 @@ local function getDevType()
 end
 
 local Window = WindUI:CreateWindow({
-        Title = "QJ脚本-加载器",
+        Title = "QJ脚本-圣奥里",
         Icon = "crown",
         IconThemed = true,
         Author = "作者：琼玖",
