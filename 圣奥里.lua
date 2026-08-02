@@ -28,32 +28,57 @@ local function getDevType()
 end
 
 local Window = WindUI:CreateWindow({
-    Title = "QJ脚本-圣奥里",
-    Icon = "crown",
-    IconThemed = true,
-    Author = "作者：琼玖",
-    Folder = "CloudHub",
-    Size = UDim2.fromOffset(300, 200),
-    Transparent = true,
-    Theme = "Midnight",
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
-    Resizable = true,
-    BackgroundImageTransparency = 0.5,
-})
+        Title = "QJ脚本-加载器",
+        Icon = "crown",
+        IconThemed = true,
+        Author = "作者：琼玖",
+        Folder = "CloudHub",
+        Size = UDim2.fromOffset(300, 200),
+        Transparent = true,
+        Theme = "Midnight",
+        HideSearchBar = false,
+        ScrollBarEnabled = true,
+        Resizable = true,
+        BackgroundImageTransparency = 0.5,
+        User = {
+            Enabled = true,
+            Callback = function()
+                WindUI:Notify({
+                    Title = "点击了自己",
+                    Content = "没什么",
+                    Duration = 1,
+                    Icon = "4483362748"
+                })
+            end,
+            Anonymous = false
+        },
+        SideBarWidth = 250,
+        Search = {
+            Enabled = true,
+            Placeholder = "搜索...",
+            Callback = function(searchText) end
+        },
+        SidePanel = {
+            Enabled = true,
+            Content = {
+                {
+                    Type = "Button",
+                    Text = "",
+                    Style = "Subtle",
+                    Size = UDim2.new(1, -20, 0, 30),
+                    Callback = function() end
+                }
+            }
+        }
+    })
 
 Window:SetToggleKey(Enum.KeyCode.N)
 Window:SetUIScale(0.75)
 
--- 已移除“信息”区域和“关于”选项卡的所有内容
-local DS = Window:Section({ Title = "功能", Opened = true })
-
-local MT = DS:Tab({ Title = "主要", Icon = "crown" })
+local MT = Window:Tab({ Title = "主要", Icon = "crown" })
 
 Window:SelectTab(1)
 WindUI:SetNotificationLower(true)
-
--- 以下为原有功能代码，红边框和关于页已移除
 
 local g = game
 local P = g.GetService
@@ -1258,7 +1283,7 @@ MT:Toggle({ Title = "自动捡钱", Value = C.aM, Callback = function(s) C.aM = 
 MT:Toggle({ Title = "无限子弹", Value = C.infAmmo, Callback = function(s) C.infAmmo = s end })
 MT:Toggle({ Title = "射速增快", Value = C.fireRate, Callback = function(s) C.fireRate = s end })
 
-local PT = DS:Tab({ Title = "玩家", Icon = "user" })
+local PT = Window:Tab({ Title = "玩家", Icon = "user" })
 PT:Toggle({ Title = "加速", Value = C.sh, Callback = function(s) C.sh = s end })
 PT:Slider({ Title = "速度值", Value = { Min = 16, Max = 500, Default = C.wsV }, Step = 1, Callback = function(v) C.wsV = v end })
 PT:Toggle({ Title = "飞行", Value = C.fly, Callback = function(s) C.fly = s if s then sF() else eF() end end })
@@ -1269,7 +1294,7 @@ PT:Toggle({ Title = "快速互动", Value = C.qI, Callback = function(s) C.qI = 
 PT:Slider({ Title = "触发距离", Value = { Min = 5, Max = 150, Default = C.qD }, Step = 1, Callback = function(v) C.qD = v end })
 PT:Toggle({ Title = "旋转", Value = C.spin, Callback = function(s) C.spin = s if s then startSpin() else stopSpin() end end })
 
-local CT = DS:Tab({ Title = "战斗", Icon = "crosshair" })
+local CT = Window:Tab({ Title = "战斗", Icon = "crosshair" })
 CT:Toggle({ Title = "自瞄", Value = C.ab, Callback = function(s) C.ab = s end })
 CT:Toggle({ Title = "静默自瞄", Value = C.sAB, Callback = function(s) C.sAB = s end })
 CT:Toggle({ Title = "RageBot", Value = C.rB, Callback = function(s) C.rB = s end })
@@ -1286,11 +1311,11 @@ CT:Dropdown({ Title = "白名单(不受伤害)", Values = whitelistNames, Value 
     if n ~= "无" then whitelist[n] = true end
 end })
 
-local VT = DS:Tab({ Title = "汽车", Icon = "car" })
+local VT = Window:Tab({ Title = "汽车", Icon = "car" })
 VT:Toggle({ Title = "汽车飞行", Value = C.carFly, Callback = function(s) C.carFly = s if s then startCarFly() else stopCarFly() end end })
 VT:Slider({ Title = "飞行速度", Value = { Min = 50, Max = 500, Default = C.carSpeed }, Step = 10, Callback = function(v) C.carSpeed = v end })
 
-local ET = DS:Tab({ Title = "ESP", Icon = "eye" })
+local ET = Window:Tab({ Title = "ESP", Icon = "eye" })
 ET:Toggle({ Title = "玩家高亮", Value = C.esp, Callback = function(s) C.esp = s end })
 ET:Toggle({ Title = "忽略队友", Value = C.eTc, Callback = function(s) C.eTc = s end })
 ET:Toggle({ Title = "ESP天线", Value = C.eL, Callback = function(s) C.eL = s end })
@@ -1300,7 +1325,7 @@ ET:Dropdown({ Title = "职业透视", Values = jobList, Value = selectedJob, Cal
     C.espJob = n
 end })
 
-local FT = DS:Tab({ Title = "刷钱", Icon = "dollar-sign" })
+local FT = Window:Tab({ Title = "刷钱", Icon = "dollar-sign" })
 FT:Toggle({ Title = "农民刷钱", Value = C.fB, Callback = function(s) C.fB = s end })
 FT:Button({ Title = "自动破解(站在原地)", Icon = "unlock", Callback = function()
     C.doATM = true
@@ -1309,7 +1334,7 @@ FT:Button({ Title = "传送+全自动破解", Icon = "truck", Callback = functio
     C.doATMFull = true
 end })
 
-local AUT = DS:Tab({ Title = "自动购买", Icon = "shopping-cart" })
+local AUT = Window:Tab({ Title = "自动购买", Icon = "shopping-cart" })
 AUT:Dropdown({ Title = "武器商店", Values = weaponNames, Value = selectedWeapon, Callback = function(name) selectedWeapon = name end })
 AUT:Button({ Title = "购买武器", Icon = "crosshair", Callback = function()
     for _, item in ipairs(WEAPON_ITEMS) do
@@ -1338,7 +1363,7 @@ AUT:Button({ Title = "购买超市物品", Icon = "basket", Callback = function(
     end
 end })
 
-local TT = DS:Tab({ Title = "传送", Icon = "map-pin" })
+local TT = Window:Tab({ Title = "传送", Icon = "map-pin" })
 TT:Button({ Title = "最近ATM", Icon = "dollar-sign", Callback = function() tNA() end })
 TT:Dropdown({ Title = "传送点", Values = tpNames, Value = selectedTP, Callback = function(name) selectedTP = name end })
 TT:Button({ Title = "传送", Icon = "map-pin", Callback = function()
@@ -1349,4 +1374,4 @@ end })
 TT:Dropdown({ Title = "玩家传送", Values = playerNames, Value = selectedPlayer, Callback = function(n)
     selectedPlayer = n
     C.tpT = n
-end })
+end })  
