@@ -1,6 +1,6 @@
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/bygyyds666/QJ/refs/heads/main/ui.lua"))()
 
-local Window = WindUI:CreateWindow({
+local Window = WindUI.Window({
     Title = "你的脚本",
     Size = UDim2.new(0, 600, 0, 400),
     Theme = "Dark"
